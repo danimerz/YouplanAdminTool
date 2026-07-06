@@ -1,0 +1,35 @@
+<Window x:Class="YouplanAdminTool.App.Views.EmployeeDetailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding WindowTitle}"
+        Height="500" Width="700"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{Binding EmployeeName}" FontSize="18" FontWeight="Bold" />
+            <TextBlock Foreground="Gray">
+                <Run Text="Abteilung: " />
+                <Run Text="{Binding DepartmentName, Mode=OneWay}" />
+                <Run Text=" · " />
+                <Run Text="{Binding Absences.Count, Mode=OneWay}" />
+                <Run Text=" Abwesenheiten im aktuell geladenen Zeitraum" />
+            </TextBlock>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Absences}" AutoGenerateColumns="False"
+                  IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
+                  GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
+                <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="140" />
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="120" />
+                <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</Window>

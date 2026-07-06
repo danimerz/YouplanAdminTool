@@ -4,6 +4,7 @@ namespace YouplanAdminTool.App.ViewModels;
 public sealed class AbsenceRowViewModel
 {
     public required long Id { get; init; }
+    public required long EmployeeId { get; init; }
     public required string EmployeeName { get; init; }
     public required string DepartmentName { get; init; }
     public required DateOnly StartDate { get; init; }

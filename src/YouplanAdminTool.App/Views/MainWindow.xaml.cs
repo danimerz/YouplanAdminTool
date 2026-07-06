@@ -1,5 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 using YouplanAdminTool.App.ViewModels;
 
 namespace YouplanAdminTool.App.Views;
@@ -7,6 +9,7 @@ namespace YouplanAdminTool.App.Views;
 public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
+    private readonly Dictionary<long, EmployeeDetailWindow> _openDetailWindows = [];
     private TrayIconController? _trayIconController;
     private bool _allowClose;
     private bool _hasShownMinimizeHint;
@@ -63,6 +66,31 @@ public partial class MainWindow : Window
                 "Youplan Admin Tool läuft weiter",
                 "Die Anwendung wurde ins Symbolfeld minimiert und aktualisiert die Ferien-Übersicht im Hintergrund.");
         }
+    }
+
+    private void OnAbsenceRowDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is not DataGrid { SelectedItem: AbsenceRowViewModel row })
+        {
+            return;
+        }
+
+        if (_openDetailWindows.TryGetValue(row.EmployeeId, out var existingWindow))
+        {
+            existingWindow.Activate();
+            return;
+        }
+
+        var detail = _viewModel.GetEmployeeDetail(row.EmployeeId);
+        if (detail is null)
+        {
+            return;
+        }
+
+        var window = new EmployeeDetailWindow(detail) { Owner = this };
+        _openDetailWindows[row.EmployeeId] = window;
+        window.Closed += (_, _) => _openDetailWindows.Remove(row.EmployeeId);
+        window.Show();
     }
 
     private void OnNewApprovalsDetected(object? sender, int count)

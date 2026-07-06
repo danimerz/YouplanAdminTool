@@ -345,18 +345,45 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private bool IsInDepartment(long employeeId, long departmentId) =>
         _employeesById.TryGetValue(employeeId, out var employee) && employee.DepartmentIds.Contains(departmentId);
 
+    /// <summary>Baut die Detailansicht für einen Mitarbeiter (alle aktuell geladenen Abwesenheiten),
+    /// z.B. für einen Doppelklick auf eine Zeile der Ferien-Übersicht. Liefert null, wenn der
+    /// Mitarbeiter nicht (mehr) in den zuletzt geladenen Stammdaten enthalten ist.</summary>
+    public EmployeeDetailViewModel? GetEmployeeDetail(long employeeId)
+    {
+        if (!_employeesById.TryGetValue(employeeId, out var employee))
+        {
+            return null;
+        }
+
+        var absences = _lastFetchedRequests
+            .Where(r => r.EmployeeId == employeeId)
+            .OrderByDescending(r => r.StartDate)
+            .Select(r => ToRowViewModel(r, _lastNewlyApprovedIds.Contains(r.Id)))
+            .ToList();
+
+        return new EmployeeDetailViewModel
+        {
+            EmployeeName = employee.FullName,
+            DepartmentName = GetDepartmentName(employee),
+            Absences = absences,
+        };
+    }
+
+    private string GetDepartmentName(Employee? employee) =>
+        employee?.DepartmentIds
+            .Select(id => _departmentsById.TryGetValue(id, out var department) ? department.Name : null)
+            .FirstOrDefault(name => name is not null) ?? "–";
+
     private AbsenceRowViewModel ToRowViewModel(AbsenceRequest request, bool isNew)
     {
         _employeesById.TryGetValue(request.EmployeeId, out var employee);
-        var departmentName = employee?.DepartmentIds
-            .Select(id => _departmentsById.TryGetValue(id, out var department) ? department.Name : null)
-            .FirstOrDefault(name => name is not null) ?? "–";
 
         return new AbsenceRowViewModel
         {
             Id = request.Id,
+            EmployeeId = request.EmployeeId,
             EmployeeName = employee?.FullName ?? $"Mitarbeiter #{request.EmployeeId}",
-            DepartmentName = departmentName,
+            DepartmentName = GetDepartmentName(employee),
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             AbsenceTypeDisplay = request.Accounts.Count > 0 && !string.IsNullOrWhiteSpace(request.Accounts[0].Name)
