@@ -4,10 +4,12 @@
                  xmlns:converters="clr-namespace:YouplanAdminTool.App.Converters"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  Title="Youplan Admin Tool – Ferien-Übersicht"
-                 Height="760" Width="1150"
+                 Height="760" Width="1250"
+                 MinWidth="900"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica">
+                 WindowBackdropType="Mica"
+                 FontFamily="Siemens Sans, Segoe UI, sans-serif">
     <Window.Resources>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
     </Window.Resources>
@@ -26,8 +28,8 @@
         <!-- Werkzeugleiste -->
         <ui:Card Grid.Row="1" Margin="0,0,0,12">
             <WrapPanel Orientation="Horizontal">
-                <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,4"
-                        Command="{Binding RefreshCommand}" />
+                <ui:Button Content="Jetzt aktualisieren" Appearance="Primary" Padding="10,4" Margin="0,0,8,4"
+                           Command="{Binding RefreshCommand}" />
 
                 <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,4" />
                 <DatePicker SelectedDate="{Binding StartDate}" Width="120" Margin="0,0,0,4" />
@@ -75,9 +77,9 @@
                         <DataGridTemplateColumn Header="" Width="90">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <Button Content="Erledigt" Padding="6,2"
-                                            Command="{Binding DataContext.MarkCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding Id}" />
+                                    <ui:Button Content="Erledigt" Appearance="Success" Padding="6,2"
+                                               Command="{Binding DataContext.MarkCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                               CommandParameter="{Binding Id}" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
@@ -87,7 +89,8 @@
         </ui:Card>
 
         <!-- Ferien-Übersicht -->
-        <ui:Card Grid.Row="3" Margin="0,0,0,12" Padding="0">
+        <ui:Card Grid.Row="3" Margin="0,0,0,12" Padding="0"
+                 HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
             <DataGrid ItemsSource="{Binding AbsenceRows}" AutoGenerateColumns="False"
                       IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
                       GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}"

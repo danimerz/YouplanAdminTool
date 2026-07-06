@@ -6,7 +6,8 @@
                  Height="520" Width="700"
                  WindowStartupLocation="CenterOwner"
                  ExtendsContentIntoTitleBar="True"
-                 WindowBackdropType="Mica">
+                 WindowBackdropType="Mica"
+                 FontFamily="Siemens Sans, Segoe UI, sans-serif">
     <Grid Margin="12,0,12,12">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -27,7 +28,7 @@
             </TextBlock>
         </StackPanel>
 
-        <ui:Card Grid.Row="2" Padding="0">
+        <ui:Card Grid.Row="2" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
             <DataGrid ItemsSource="{Binding Absences}" AutoGenerateColumns="False"
                       IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
                       GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}">

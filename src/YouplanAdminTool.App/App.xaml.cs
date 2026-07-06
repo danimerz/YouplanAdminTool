@@ -11,6 +11,9 @@ namespace YouplanAdminTool.App;
 
 public partial class App : System.Windows.Application
 {
+    // Siemens iX Primärfarbe (--theme-color-primary aus https://github.com/siemens/ix).
+    private static readonly System.Windows.Media.Color SiemensAccentColor = System.Windows.Media.Color.FromRgb(0x00, 0x6E, 0x93);
+
     private IHost? _host;
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -18,6 +21,7 @@ public partial class App : System.Windows.Application
         base.OnStartup(e);
 
         ApplicationThemeManager.Apply(ApplicationTheme.Light);
+        ApplicationAccentColorManager.Apply(SiemensAccentColor, ApplicationTheme.Light);
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, config) =>

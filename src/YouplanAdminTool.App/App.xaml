@@ -9,10 +9,21 @@
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
 
+            <!-- Siemens iX Design-Tokens (https://github.com/siemens/ix), manuell übernommen,
+                 da iX nur als Web-Component-Bibliothek existiert und keine WPF-Variante bietet. -->
+            <SolidColorBrush x:Key="SiemensPrimaryBrush" Color="#006E93" />
+            <SolidColorBrush x:Key="SiemensSurfaceBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="SiemensBackgroundBrush" Color="#EFF0F1" />
+            <SolidColorBrush x:Key="SiemensBorderBrush" Color="#E2E4E6" />
+            <SolidColorBrush x:Key="SiemensWarningBrush" Color="#FFBB00" />
+            <SolidColorBrush x:Key="SiemensWarningBackgroundBrush" Color="#FFF6DA" />
+            <SolidColorBrush x:Key="SiemensSuccessBrush" Color="#2C8500" />
+            <SolidColorBrush x:Key="SiemensAlarmBrush" Color="#D72332" />
+
             <Style x:Key="AbsenceRowStyle" TargetType="DataGridRow">
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding HasOpenAction}" Value="True">
-                        <Setter Property="Background" Value="#FFE8F5E9" />
+                        <Setter Property="Background" Value="{StaticResource SiemensWarningBackgroundBrush}" />
                         <Setter Property="FontWeight" Value="SemiBold" />
                     </DataTrigger>
                 </Style.Triggers>
