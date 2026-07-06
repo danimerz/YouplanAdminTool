@@ -4,7 +4,8 @@ namespace YouplanAdminTool.Core.Models;
 public sealed record UserSettings(
     int? PollingIntervalMinutes,
     AbsenceType? AbsenceTypeFilter,
-    long? DepartmentFilterId)
+    long? DepartmentFilterId,
+    long? EmployeeFilterId)
 {
-    public static UserSettings Empty { get; } = new(null, null, null);
+    public static UserSettings Empty { get; } = new(null, null, null, null);
 }

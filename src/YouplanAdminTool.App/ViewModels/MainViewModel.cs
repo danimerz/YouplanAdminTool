@@ -28,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private IReadOnlyList<AbsenceRequest> _lastFetchedRequests = [];
     private IReadOnlySet<long> _lastNewlyApprovedIds = new HashSet<long>();
     private long? _pendingDepartmentFilterId;
+    private long? _pendingEmployeeFilterId;
     private bool _isInitializing = true;
 
     /// <summary>Wird nach jeder Aktualisierung ausgelöst, sofern neu genehmigte Anträge gefunden wurden (Anzahl).</summary>
@@ -55,6 +56,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private DepartmentFilterItem? selectedDepartmentFilter;
 
     [ObservableProperty]
+    private EmployeeFilterItem? selectedEmployeeFilter;
+
+    [ObservableProperty]
     private int pollingIntervalMinutes;
 
     public ObservableCollection<AbsenceTypeFilterItem> AbsenceTypeFilterOptions { get; } =
@@ -69,6 +73,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     public ObservableCollection<DepartmentFilterItem> DepartmentFilterOptions { get; } =
     [
         new(null, "Alle Abteilungen"),
+    ];
+
+    public ObservableCollection<EmployeeFilterItem> EmployeeFilterOptions { get; } =
+    [
+        new(null, "Alle Mitarbeiter"),
     ];
 
     public ObservableCollection<AbsenceRowViewModel> AbsenceRows { get; } = [];
@@ -96,6 +105,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         endDate = DateTime.Today.AddDays(_appOptions.DefaultDateRangeDays);
         selectedAbsenceTypeFilter = AbsenceTypeFilterOptions[0];
         selectedDepartmentFilter = DepartmentFilterOptions[0];
+        selectedEmployeeFilter = EmployeeFilterOptions[0];
         pollingIntervalMinutes = _appOptions.PollingIntervalMinutes;
 
         StartAutoRefreshTimer();
@@ -124,6 +134,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             }
 
             _pendingDepartmentFilterId = settings.DepartmentFilterId;
+            _pendingEmployeeFilterId = settings.EmployeeFilterId;
         }
         catch (Exception ex)
         {
@@ -152,6 +163,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             var employees = await _hrService.GetEmployeesAsync();
             _employeesById = employees.ToDictionary(e => e.Id);
+            RebuildEmployeeFilterOptions(employees);
 
             var departments = await _hrService.GetDepartmentsAsync();
             _departmentsById = departments.ToDictionary(d => d.Id);
@@ -218,6 +230,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         TriggerSaveSettings();
     }
 
+    partial void OnSelectedEmployeeFilterChanged(EmployeeFilterItem? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        ApplyFilter();
+        TriggerSaveSettings();
+    }
+
     partial void OnPollingIntervalMinutesChanged(int value)
     {
         if (_autoRefreshTimer is not null)
@@ -238,7 +261,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var settings = new UserSettings(
             PollingIntervalMinutes,
             SelectedAbsenceTypeFilter?.Value,
-            SelectedDepartmentFilter?.Value);
+            SelectedDepartmentFilter?.Value,
+            SelectedEmployeeFilter?.Value);
 
         _ = SaveSettingsAsync(settings);
     }
@@ -271,14 +295,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _pendingDepartmentFilterId = null;
     }
 
+    private void RebuildEmployeeFilterOptions(IReadOnlyList<Employee> employees)
+    {
+        var currentSelection = SelectedEmployeeFilter?.Value ?? _pendingEmployeeFilterId;
+
+        EmployeeFilterOptions.Clear();
+        EmployeeFilterOptions.Add(new EmployeeFilterItem(null, "Alle Mitarbeiter"));
+        foreach (var employee in employees.OrderBy(e => e.FullName))
+        {
+            EmployeeFilterOptions.Add(new EmployeeFilterItem(employee.Id, employee.FullName));
+        }
+
+        SelectedEmployeeFilter = EmployeeFilterOptions.FirstOrDefault(e => e.Value == currentSelection)
+            ?? EmployeeFilterOptions[0];
+        _pendingEmployeeFilterId = null;
+    }
+
     private void ApplyFilter()
     {
         var filterType = SelectedAbsenceTypeFilter?.Value;
         var filterDepartmentId = SelectedDepartmentFilter?.Value;
+        var filterEmployeeId = SelectedEmployeeFilter?.Value;
 
         var filtered = _lastFetchedRequests
             .Where(r => filterType is null || r.PrimaryAbsenceType == filterType)
             .Where(r => filterDepartmentId is null || IsInDepartment(r.EmployeeId, filterDepartmentId.Value))
+            .Where(r => filterEmployeeId is null || r.EmployeeId == filterEmployeeId.Value)
             .ToList();
 
         AbsenceRows.Clear();
@@ -311,7 +353,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             DepartmentName = departmentName,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            AbsenceTypeDisplay = AbsenceDisplayText.ForType(request.PrimaryAbsenceType),
+            AbsenceTypeDisplay = request.Accounts.Count > 0 && !string.IsNullOrWhiteSpace(request.Accounts[0].Name)
+                ? request.Accounts[0].Name
+                : AbsenceDisplayText.ForType(request.PrimaryAbsenceType),
             StatusDisplay = AbsenceDisplayText.ForStatus(request.Status),
             Note = request.Note,
             IsNew = isNew,

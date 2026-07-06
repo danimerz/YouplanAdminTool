@@ -27,30 +27,35 @@
         </Grid.RowDefinitions>
 
         <!-- Werkzeugleiste -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,0"
+        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,4"
                     Command="{Binding RefreshCommand}" />
 
-            <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,0" />
-            <DatePicker SelectedDate="{Binding StartDate}" Width="120" />
+            <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,4" />
+            <DatePicker SelectedDate="{Binding StartDate}" Width="120" Margin="0,0,0,4" />
 
-            <TextBlock Text="Bis:" VerticalAlignment="Center" Margin="12,0,4,0" />
-            <DatePicker SelectedDate="{Binding EndDate}" Width="120" />
+            <TextBlock Text="Bis:" VerticalAlignment="Center" Margin="12,0,4,4" />
+            <DatePicker SelectedDate="{Binding EndDate}" Width="120" Margin="0,0,0,4" />
 
-            <TextBlock Text="Art:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <TextBlock Text="Art:" VerticalAlignment="Center" Margin="12,0,4,4" />
             <ComboBox ItemsSource="{Binding AbsenceTypeFilterOptions}"
                       SelectedItem="{Binding SelectedAbsenceTypeFilter}"
-                      Width="140" />
+                      Width="140" Margin="0,0,0,4" />
 
-            <TextBlock Text="Abteilung:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <TextBlock Text="Abteilung:" VerticalAlignment="Center" Margin="12,0,4,4" />
             <ComboBox ItemsSource="{Binding DepartmentFilterOptions}"
                       SelectedItem="{Binding SelectedDepartmentFilter}"
-                      Width="160" />
+                      Width="160" Margin="0,0,0,4" />
 
-            <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <TextBlock Text="Mitarbeiter:" VerticalAlignment="Center" Margin="12,0,4,4" />
+            <ComboBox ItemsSource="{Binding EmployeeFilterOptions}"
+                      SelectedItem="{Binding SelectedEmployeeFilter}"
+                      Width="200" Margin="0,0,0,4" />
+
+            <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,4" />
             <TextBox Text="{Binding PollingIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
-                     Width="40" VerticalContentAlignment="Center" />
-        </StackPanel>
+                     Width="40" VerticalContentAlignment="Center" Margin="0,0,0,4" />
+        </WrapPanel>
 
         <!-- Neu genehmigt seit letzter Abfrage -->
         <Expander Grid.Row="1" Header="Neu freigegeben seit der letzten Abfrage"

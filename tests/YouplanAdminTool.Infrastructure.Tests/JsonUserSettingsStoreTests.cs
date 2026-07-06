@@ -26,7 +26,7 @@ public class JsonUserSettingsStoreTests : IDisposable
     public async Task SavedSettingsCanBeLoadedBack()
     {
         var sut = CreateSut();
-        var settings = new UserSettings(30, AbsenceType.Vacation, 42);
+        var settings = new UserSettings(30, AbsenceType.Vacation, 42, 99);
 
         await sut.SaveAsync(settings);
         var loaded = await sut.LoadAsync();
@@ -39,11 +39,11 @@ public class JsonUserSettingsStoreTests : IDisposable
     {
         var sut = CreateSut();
 
-        await sut.SaveAsync(new UserSettings(15, null, null));
-        await sut.SaveAsync(new UserSettings(60, AbsenceType.Flextime, 7));
+        await sut.SaveAsync(new UserSettings(15, null, null, null));
+        await sut.SaveAsync(new UserSettings(60, AbsenceType.Flextime, 7, 3));
         var loaded = await sut.LoadAsync();
 
-        Assert.Equal(new UserSettings(60, AbsenceType.Flextime, 7), loaded);
+        Assert.Equal(new UserSettings(60, AbsenceType.Flextime, 7, 3), loaded);
     }
 
     public void Dispose()

@@ -52,3 +52,15 @@ internal sealed class AccountTypeDto
     [JsonPropertyName("absenceType")]
     public string? AbsenceType { get; set; }
 }
+
+/// <summary>Eine konkrete Konto-Instanz eines Mitarbeiters (z.B. "Marias Urlaubskonto").
+/// <see cref="RequestedAccountDto.Id"/> in einem Abwesenheitsantrag referenziert diese Id,
+/// nicht direkt die Kontoart - die Abwesenheitsart ergibt sich erst über <see cref="TypeId"/>.</summary>
+internal sealed class AccountDto
+{
+    [JsonPropertyName("id")]
+    public long Id { get; set; }
+
+    [JsonPropertyName("typeId")]
+    public long? TypeId { get; set; }
+}

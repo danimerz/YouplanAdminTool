@@ -17,8 +17,19 @@ public class PlandayAbsenceServiceTests
         }
         """;
 
+    // requestedAccounts[].id referenziert eine Konto-INSTANZ (id=500), nicht die Kontoart direkt.
+    // Erst über deren typeId (=10) wird die Kontoart ("Urlaub"/Vacation) aufgelöst.
+    private const string AccountsSinglePage = """
+        {
+            "data": [
+                { "id": 500, "employeeId": 42, "typeId": 10 }
+            ],
+            "paging": { "offset": 0, "limit": 100, "total": 1 }
+        }
+        """;
+
     [Fact]
-    public async Task MapsAbsenceRequestAndResolvesAccountTypeFromAbsenceType()
+    public async Task MapsAbsenceRequestAndResolvesAbsenceTypeViaAccountIndirection()
     {
         var requestsJson = """
             {
@@ -29,15 +40,14 @@ public class PlandayAbsenceServiceTests
                         "note": "Sommerurlaub",
                         "absencePeriod": { "start": "2026-07-10", "end": "2026-07-20" },
                         "status": "Approved",
-                        "requestedAccounts": [ { "id": 10, "name": "Urlaub" } ]
+                        "requestedAccounts": [ { "id": 500, "name": "Urlaub" } ]
                     }
                 ],
                 "paging": { "offset": 0, "limit": 100, "total": 1 }
             }
             """;
 
-        var handler = new StubHttpMessageHandler(request => JsonResponse(
-            request.RequestUri!.ToString().Contains("accounttypes") ? AccountTypesSinglePage : requestsJson));
+        var handler = new StubHttpMessageHandler(request => JsonResponse(RouteResponse(request, requestsJson)));
         var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://openapi.planday.test") };
         var sut = new PlandayAbsenceService(httpClient);
 
@@ -54,6 +64,34 @@ public class PlandayAbsenceServiceTests
     }
 
     [Fact]
+    public async Task FallsBackToUnknownWhenAccountCannotBeResolved()
+    {
+        var requestsJson = """
+            {
+                "data": [
+                    {
+                        "id": 501,
+                        "employeeId": 42,
+                        "absencePeriod": { "start": "2026-07-10", "end": "2026-07-20" },
+                        "status": "Approved",
+                        "requestedAccounts": [ { "id": 999999, "name": "Unbekanntes Konto" } ]
+                    }
+                ],
+                "paging": { "offset": 0, "limit": 100, "total": 1 }
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler(request => JsonResponse(RouteResponse(request, requestsJson)));
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://openapi.planday.test") };
+        var sut = new PlandayAbsenceService(httpClient);
+
+        var query = new AbsenceRequestQuery(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
+        var result = await sut.GetAbsenceRequestsAsync(query);
+
+        Assert.Equal(AbsenceType.Unknown, Assert.Single(result).PrimaryAbsenceType);
+    }
+
+    [Fact]
     public async Task FollowsPaginationUntilAllPagesFetched()
     {
         var callCount = 0;
@@ -63,6 +101,11 @@ public class PlandayAbsenceServiceTests
             if (url.Contains("accounttypes"))
             {
                 return JsonResponse(AccountTypesSinglePage);
+            }
+
+            if (url.Contains("absence/v1.0/accounts"))
+            {
+                return JsonResponse(AccountsSinglePage);
             }
 
             callCount++;
@@ -92,6 +135,22 @@ public class PlandayAbsenceServiceTests
 
         Assert.Equal(2, result.Count);
         Assert.Equal(2, callCount);
+    }
+
+    private static string RouteResponse(HttpRequestMessage request, string requestsJson)
+    {
+        var url = request.RequestUri!.ToString();
+        if (url.Contains("accounttypes"))
+        {
+            return AccountTypesSinglePage;
+        }
+
+        if (url.Contains("absence/v1.0/accounts"))
+        {
+            return AccountsSinglePage;
+        }
+
+        return requestsJson;
     }
 
     private static HttpResponseMessage JsonResponse(string json) => new(HttpStatusCode.OK)
