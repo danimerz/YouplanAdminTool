@@ -1,0 +1,95 @@
+<Window x:Class="YouplanAdminTool.App.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:YouplanAdminTool.App.Converters"
+        Title="Youplan Admin Tool – Ferien-Übersicht"
+        Height="720" Width="1100"
+        WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
+
+        <Style x:Key="AbsenceRowStyle" TargetType="DataGridRow">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsNew}" Value="True">
+                    <Setter Property="Background" Value="#FFE8F5E9" />
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Werkzeugleiste -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+            <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,0"
+                    Command="{Binding RefreshCommand}" />
+
+            <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <DatePicker SelectedDate="{Binding StartDate}" Width="120" />
+
+            <TextBlock Text="Bis:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <DatePicker SelectedDate="{Binding EndDate}" Width="120" />
+
+            <TextBlock Text="Art:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <ComboBox ItemsSource="{Binding AbsenceTypeFilterOptions}"
+                      SelectedItem="{Binding SelectedAbsenceTypeFilter}"
+                      Width="140" />
+
+            <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <TextBox Text="{Binding PollingIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                     Width="40" VerticalContentAlignment="Center" />
+        </StackPanel>
+
+        <!-- Neu genehmigt seit letzter Abfrage -->
+        <Expander Grid.Row="1" Header="Neu freigegeben seit der letzten Abfrage"
+                  IsExpanded="True" Margin="0,0,0,12"
+                  Visibility="{Binding NewlyApproved.Count, Converter={StaticResource CountToVisibilityConverter}}">
+            <DataGrid ItemsSource="{Binding NewlyApproved}" AutoGenerateColumns="False"
+                      IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column"
+                      CanUserAddRows="False" GridLinesVisibility="Horizontal">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Mitarbeiter" Binding="{Binding EmployeeName}" Width="200" />
+                    <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
+                    <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
+                    <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
+                    <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Expander>
+
+        <!-- Ferien-Übersicht -->
+        <DataGrid Grid.Row="2" ItemsSource="{Binding AbsenceRows}" AutoGenerateColumns="False"
+                  IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
+                  GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mitarbeiter" Binding="{Binding EmployeeName}" Width="200" />
+                <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
+                <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
+                <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="120" />
+                <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Statusleiste -->
+        <StatusBar Grid.Row="3" Margin="0,12,0,0">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}" />
+            </StatusBarItem>
+            <Separator />
+            <StatusBarItem>
+                <TextBlock>
+                    <Run Text="Letzte Aktualisierung: " />
+                    <Run Text="{Binding LastRefreshedAt, StringFormat='dd.MM.yyyy HH:mm:ss'}" />
+                </TextBlock>
+            </StatusBarItem>
+        </StatusBar>
+    </Grid>
+</Window>

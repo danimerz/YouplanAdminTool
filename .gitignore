@@ -1,0 +1,16 @@
+# Build-Ausgaben
+bin/
+obj/
+
+# Visual Studio / Rider
+.vs/
+*.user
+*.suo
+
+# Lokale Secrets - niemals einchecken
+**/appsettings.local.json
+
+# Lokale SQLite-Zustandsdatenbank
+*.db
+*.db-shm
+*.db-wal

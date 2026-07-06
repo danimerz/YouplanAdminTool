@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/YouplanAdminTool.App/YouplanAdminTool.App.csproj" />
+    <Project Path="src/YouplanAdminTool.Core/YouplanAdminTool.Core.csproj" />
+    <Project Path="src/YouplanAdminTool.Infrastructure/YouplanAdminTool.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/YouplanAdminTool.Core.Tests/YouplanAdminTool.Core.Tests.csproj" />
+    <Project Path="tests/YouplanAdminTool.Infrastructure.Tests/YouplanAdminTool.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
