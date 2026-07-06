@@ -1,9 +1,9 @@
-using System.Windows;
+using Wpf.Ui.Controls;
 using YouplanAdminTool.App.ViewModels;
 
 namespace YouplanAdminTool.App.Views;
 
-public partial class EmployeeDetailWindow : Window
+public partial class EmployeeDetailWindow : FluentWindow
 {
     public EmployeeDetailWindow(EmployeeDetailViewModel viewModel)
     {

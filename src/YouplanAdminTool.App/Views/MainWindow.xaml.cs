@@ -2,11 +2,12 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using Wpf.Ui.Controls;
 using YouplanAdminTool.App.ViewModels;
 
 namespace YouplanAdminTool.App.Views;
 
-public partial class MainWindow : Window
+public partial class MainWindow : FluentWindow
 {
     private readonly MainViewModel _viewModel;
     private readonly Dictionary<long, EmployeeDetailWindow> _openDetailWindows = [];
@@ -70,7 +71,7 @@ public partial class MainWindow : Window
 
     private void OnAbsenceRowDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not DataGrid { SelectedItem: IHasEmployeeId row })
+        if (sender is not System.Windows.Controls.DataGrid { SelectedItem: IHasEmployeeId row })
         {
             return;
         }

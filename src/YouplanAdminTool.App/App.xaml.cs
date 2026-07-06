@@ -2,6 +2,7 @@ using System.Windows;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Wpf.Ui.Appearance;
 using YouplanAdminTool.App.ViewModels;
 using YouplanAdminTool.App.Views;
 using YouplanAdminTool.Infrastructure;
@@ -15,6 +16,8 @@ public partial class App : System.Windows.Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        ApplicationThemeManager.Apply(ApplicationTheme.Light);
 
         _host = Host.CreateDefaultBuilder()
             .ConfigureAppConfiguration((_, config) =>

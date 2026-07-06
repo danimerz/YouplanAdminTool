@@ -1,60 +1,96 @@
-<Window x:Class="YouplanAdminTool.App.Views.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:converters="clr-namespace:YouplanAdminTool.App.Converters"
-        Title="Youplan Admin Tool – Ferien-Übersicht"
-        Height="720" Width="1100"
-        WindowStartupLocation="CenterScreen">
+<ui:FluentWindow x:Class="YouplanAdminTool.App.Views.MainWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:converters="clr-namespace:YouplanAdminTool.App.Converters"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Youplan Admin Tool – Ferien-Übersicht"
+                 Height="760" Width="1150"
+                 WindowStartupLocation="CenterScreen"
+                 ExtendsContentIntoTitleBar="True"
+                 WindowBackdropType="Mica">
     <Window.Resources>
         <converters:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
     </Window.Resources>
 
-    <Grid Margin="12">
+    <Grid Margin="12,0,12,12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <ui:TitleBar Grid.Row="0" Title="Youplan Admin Tool – Ferien-Übersicht" Margin="-12,0,-12,0" />
+
         <!-- Werkzeugleiste -->
-        <WrapPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-            <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,4"
-                    Command="{Binding RefreshCommand}" />
+        <ui:Card Grid.Row="1" Margin="0,0,0,12">
+            <WrapPanel Orientation="Horizontal">
+                <Button Content="Jetzt aktualisieren" Padding="10,4" Margin="0,0,8,4"
+                        Command="{Binding RefreshCommand}" />
 
-            <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <DatePicker SelectedDate="{Binding StartDate}" Width="120" Margin="0,0,0,4" />
+                <TextBlock Text="Von:" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <DatePicker SelectedDate="{Binding StartDate}" Width="120" Margin="0,0,0,4" />
 
-            <TextBlock Text="Bis:" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <DatePicker SelectedDate="{Binding EndDate}" Width="120" Margin="0,0,0,4" />
+                <TextBlock Text="Bis:" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <DatePicker SelectedDate="{Binding EndDate}" Width="120" Margin="0,0,0,4" />
 
-            <TextBlock Text="Art:" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <ComboBox ItemsSource="{Binding AbsenceTypeFilterOptions}"
-                      SelectedItem="{Binding SelectedAbsenceTypeFilter}"
-                      Width="140" Margin="0,0,0,4" />
+                <TextBlock Text="Art:" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <ComboBox ItemsSource="{Binding AbsenceTypeFilterOptions}"
+                          SelectedItem="{Binding SelectedAbsenceTypeFilter}"
+                          Width="140" Margin="0,0,0,4" />
 
-            <TextBlock Text="Abteilung:" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <ComboBox ItemsSource="{Binding DepartmentFilterOptions}"
-                      SelectedItem="{Binding SelectedDepartmentFilter}"
-                      Width="160" Margin="0,0,0,4" />
+                <TextBlock Text="Abteilung:" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <ComboBox ItemsSource="{Binding DepartmentFilterOptions}"
+                          SelectedItem="{Binding SelectedDepartmentFilter}"
+                          Width="160" Margin="0,0,0,4" />
 
-            <TextBlock Text="Mitarbeiter:" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <ComboBox ItemsSource="{Binding EmployeeFilterOptions}"
-                      SelectedItem="{Binding SelectedEmployeeFilter}"
-                      Width="200" Margin="0,0,0,4" />
+                <TextBlock Text="Mitarbeiter:" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <ComboBox ItemsSource="{Binding EmployeeFilterOptions}"
+                          SelectedItem="{Binding SelectedEmployeeFilter}"
+                          Width="200" Margin="0,0,0,4" />
 
-            <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,4" />
-            <TextBox Text="{Binding PollingIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
-                     Width="40" VerticalContentAlignment="Center" Margin="0,0,0,4" />
-        </WrapPanel>
+                <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,4" />
+                <TextBox Text="{Binding PollingIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                         Width="40" VerticalContentAlignment="Center" Margin="0,0,0,4" />
+            </WrapPanel>
+        </ui:Card>
 
         <!-- Offene Posten für SAP -->
-        <Expander Grid.Row="1" Header="Offene Posten für SAP"
-                  IsExpanded="True" Margin="0,0,0,12"
-                  Visibility="{Binding OpenActionItems.Count, Converter={StaticResource CountToVisibilityConverter}}">
-            <DataGrid ItemsSource="{Binding OpenActionItems}" AutoGenerateColumns="False"
-                      IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column"
-                      CanUserAddRows="False" GridLinesVisibility="Horizontal"
+        <ui:Card Grid.Row="2" Margin="0,0,0,12"
+                 Visibility="{Binding OpenActionItems.Count, Converter={StaticResource CountToVisibilityConverter}}">
+            <Expander Header="Offene Posten für SAP" IsExpanded="True">
+                <DataGrid ItemsSource="{Binding OpenActionItems}" AutoGenerateColumns="False"
+                          IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column"
+                          CanUserAddRows="False" GridLinesVisibility="Horizontal"
+                          MouseDoubleClick="OnAbsenceRowDoubleClick"
+                          ToolTip="Doppelklick zeigt alle Abwesenheiten des Mitarbeiters">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Mitarbeiter" Binding="{Binding EmployeeName}" Width="200" />
+                        <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
+                        <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
+                        <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
+                        <DataGridTextColumn Header="Aktion" Binding="{Binding ActionDisplay}" Width="140" />
+                        <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
+                        <DataGridTemplateColumn Header="" Width="90">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Button Content="Erledigt" Padding="6,2"
+                                            Command="{Binding DataContext.MarkCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding Id}" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Expander>
+        </ui:Card>
+
+        <!-- Ferien-Übersicht -->
+        <ui:Card Grid.Row="3" Margin="0,0,0,12" Padding="0">
+            <DataGrid ItemsSource="{Binding AbsenceRows}" AutoGenerateColumns="False"
+                      IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
+                      GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}"
                       MouseDoubleClick="OnAbsenceRowDoubleClick"
                       ToolTip="Doppelklick zeigt alle Abwesenheiten des Mitarbeiters">
                 <DataGrid.Columns>
@@ -62,39 +98,14 @@
                     <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
                     <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
                     <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
-                    <DataGridTextColumn Header="Aktion" Binding="{Binding ActionDisplay}" Width="140" />
+                    <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="120" />
                     <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
-                    <DataGridTemplateColumn Header="" Width="90">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Button Content="Erledigt" Padding="6,2"
-                                        Command="{Binding DataContext.MarkCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}" />
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
-        </Expander>
-
-        <!-- Ferien-Übersicht -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding AbsenceRows}" AutoGenerateColumns="False"
-                  IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
-                  GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}"
-                  MouseDoubleClick="OnAbsenceRowDoubleClick"
-                  ToolTip="Doppelklick zeigt alle Abwesenheiten des Mitarbeiters">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Mitarbeiter" Binding="{Binding EmployeeName}" Width="200" />
-                <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
-                <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
-                <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
-                <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="120" />
-                <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
-            </DataGrid.Columns>
-        </DataGrid>
+        </ui:Card>
 
         <!-- Statusleiste -->
-        <StatusBar Grid.Row="3" Margin="0,12,0,0">
+        <StatusBar Grid.Row="4">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusMessage}" />
             </StatusBarItem>
@@ -107,4 +118,4 @@
             </StatusBarItem>
         </StatusBar>
     </Grid>
-</Window>
+</ui:FluentWindow>
