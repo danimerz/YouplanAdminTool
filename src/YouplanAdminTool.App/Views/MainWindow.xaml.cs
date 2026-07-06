@@ -30,7 +30,7 @@ public partial class MainWindow : Window
     {
         _trayIconController = new TrayIconController(this);
         _trayIconController.ExitRequested += OnExitRequested;
-        _viewModel.NewApprovalsDetected += OnNewApprovalsDetected;
+        _viewModel.ActionItemsDetected += OnActionItemsDetected;
 
         await _viewModel.InitializeAsync();
     }
@@ -70,7 +70,7 @@ public partial class MainWindow : Window
 
     private void OnAbsenceRowDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (sender is not DataGrid { SelectedItem: AbsenceRowViewModel row })
+        if (sender is not DataGrid { SelectedItem: IHasEmployeeId row })
         {
             return;
         }
@@ -93,16 +93,16 @@ public partial class MainWindow : Window
         window.Show();
     }
 
-    private void OnNewApprovalsDetected(object? sender, int count)
+    private void OnActionItemsDetected(object? sender, int count)
     {
         _trayIconController?.ShowBalloonTip(
-            "Neu genehmigte Ferien",
-            count == 1 ? "1 neuer genehmigter Antrag." : $"{count} neue genehmigte Anträge.");
+            "Offene Posten für SAP",
+            count == 1 ? "1 neuer offener Posten für SAP." : $"{count} neue offene Posten für SAP.");
     }
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        _viewModel.NewApprovalsDetected -= OnNewApprovalsDetected;
+        _viewModel.ActionItemsDetected -= OnActionItemsDetected;
         _viewModel.Dispose();
         _trayIconController?.Dispose();
     }

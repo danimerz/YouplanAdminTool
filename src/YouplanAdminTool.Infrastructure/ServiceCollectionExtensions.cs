@@ -50,9 +50,9 @@ public static class ServiceCollectionExtensions
             })
             .AddHttpMessageHandler<PlandayAuthHeaderHandler>();
 
-        services.AddSingleton<IApprovalStateStore, SqliteApprovalStateStore>();
+        services.AddSingleton<IAbsenceProcessingStore, SqliteAbsenceProcessingStore>();
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
-        services.AddSingleton<INewApprovalDetector, NewApprovalDetector>();
+        services.AddSingleton<IStatusChangeDetector, StatusChangeDetector>();
 
         return services;
     }

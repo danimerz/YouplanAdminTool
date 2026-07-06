@@ -16,9 +16,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 {
     private readonly IPlandayAbsenceService _absenceService;
     private readonly IPlandayHrService _hrService;
-    private readonly IApprovalStateStore _approvalStateStore;
+    private readonly IAbsenceProcessingStore _processingStore;
     private readonly IUserSettingsStore _userSettingsStore;
-    private readonly INewApprovalDetector _newApprovalDetector;
+    private readonly IStatusChangeDetector _statusChangeDetector;
     private readonly ILogger<MainViewModel> _logger;
     private readonly AppOptions _appOptions;
 
@@ -26,13 +26,13 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private IReadOnlyDictionary<long, Employee> _employeesById = new Dictionary<long, Employee>();
     private IReadOnlyDictionary<long, Department> _departmentsById = new Dictionary<long, Department>();
     private IReadOnlyList<AbsenceRequest> _lastFetchedRequests = [];
-    private IReadOnlySet<long> _lastNewlyApprovedIds = new HashSet<long>();
+    private HashSet<long> _openActionRequestIds = [];
     private long? _pendingDepartmentFilterId;
     private long? _pendingEmployeeFilterId;
     private bool _isInitializing = true;
 
-    /// <summary>Wird nach jeder Aktualisierung ausgelöst, sofern neu genehmigte Anträge gefunden wurden (Anzahl).</summary>
-    public event EventHandler<int>? NewApprovalsDetected;
+    /// <summary>Wird nach jeder Aktualisierung ausgelöst, sofern neue SAP-Aktionsposten gefunden wurden (Anzahl).</summary>
+    public event EventHandler<int>? ActionItemsDetected;
 
     [ObservableProperty]
     private DateTime startDate;
@@ -82,22 +82,24 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<AbsenceRowViewModel> AbsenceRows { get; } = [];
 
-    public ObservableCollection<AbsenceRowViewModel> NewlyApproved { get; } = [];
+    /// <summary>Noch offene SAP-Aktionsposten (nicht nach Zeitraum/Art/Abteilung/Mitarbeiter gefiltert -
+    /// das ist eine Aufgabenliste, kein Zeitraum-Browser).</summary>
+    public ObservableCollection<ActionItemRowViewModel> OpenActionItems { get; } = [];
 
     public MainViewModel(
         IPlandayAbsenceService absenceService,
         IPlandayHrService hrService,
-        IApprovalStateStore approvalStateStore,
+        IAbsenceProcessingStore processingStore,
         IUserSettingsStore userSettingsStore,
-        INewApprovalDetector newApprovalDetector,
+        IStatusChangeDetector statusChangeDetector,
         IOptions<AppOptions> appOptions,
         ILogger<MainViewModel> logger)
     {
         _absenceService = absenceService;
         _hrService = hrService;
-        _approvalStateStore = approvalStateStore;
+        _processingStore = processingStore;
         _userSettingsStore = userSettingsStore;
-        _newApprovalDetector = newApprovalDetector;
+        _statusChangeDetector = statusChangeDetector;
         _appOptions = appOptions.Value;
         _logger = logger;
 
@@ -177,28 +179,32 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             RebuildDepartmentFilterOptions(departments);
 
             var requests = requestsTask.Result;
-
-            var seenApprovedIds = await _approvalStateStore.GetSeenApprovedIdsAsync();
-            var newlyApproved = _newApprovalDetector.DetectNewApprovals(requests, seenApprovedIds);
-
-            var approvedIds = requests
-                .Where(r => r.Status == AbsenceRequestStatus.Approved)
-                .Select(r => r.Id);
-            await _approvalStateStore.MarkAsSeenAsync(approvedIds);
-
             _lastFetchedRequests = requests;
-            _lastNewlyApprovedIds = newlyApproved.Select(r => r.Id).ToHashSet();
+
+            // Reihenfolge entscheidend: erst die ALTEN Stati lesen, bevor ApplyRefreshAsync sie überschreibt.
+            var previousStatuses = await _processingStore.GetLastKnownStatusesAsync();
+            var newActionItems = _statusChangeDetector.DetectActionsNeeded(requests, previousStatuses);
+            await _processingStore.ApplyRefreshAsync(requests, newActionItems);
+
+            var openItems = await _processingStore.GetOpenItemsAsync();
+            _openActionRequestIds = openItems.Select(i => i.AbsenceRequestId).ToHashSet();
 
             ApplyFilter();
 
+            OpenActionItems.Clear();
+            foreach (var item in openItems.OrderBy(i => i.StartDate))
+            {
+                OpenActionItems.Add(ToActionItemRow(item));
+            }
+
             LastRefreshedAt = DateTime.Now;
-            StatusMessage = newlyApproved.Count > 0
-                ? $"{requests.Count} Abwesenheiten geladen, davon {newlyApproved.Count} neu genehmigt."
+            StatusMessage = OpenActionItems.Count > 0
+                ? $"{requests.Count} Abwesenheiten geladen, {OpenActionItems.Count} offene Posten für SAP."
                 : $"{requests.Count} Abwesenheiten geladen.";
 
-            if (newlyApproved.Count > 0)
+            if (newActionItems.Count > 0)
             {
-                NewApprovalsDetected?.Invoke(this, newlyApproved.Count);
+                ActionItemsDetected?.Invoke(this, newActionItems.Count);
             }
         }
         catch (Exception ex)
@@ -209,6 +215,29 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task MarkCompletedAsync(long absenceRequestId)
+    {
+        try
+        {
+            await _processingStore.SetCompletedAsync(absenceRequestId, true);
+
+            var item = OpenActionItems.FirstOrDefault(i => i.Id == absenceRequestId);
+            if (item is not null)
+            {
+                OpenActionItems.Remove(item);
+            }
+
+            _openActionRequestIds.Remove(absenceRequestId);
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Fehler beim Markieren als erledigt");
+            StatusMessage = $"Fehler beim Markieren als erledigt: {ex.Message}";
         }
     }
 
@@ -332,13 +361,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         AbsenceRows.Clear();
         foreach (var request in filtered.OrderBy(r => r.StartDate))
         {
-            AbsenceRows.Add(ToRowViewModel(request, _lastNewlyApprovedIds.Contains(request.Id)));
-        }
-
-        NewlyApproved.Clear();
-        foreach (var request in filtered.Where(r => _lastNewlyApprovedIds.Contains(r.Id)).OrderBy(r => r.StartDate))
-        {
-            NewlyApproved.Add(ToRowViewModel(request, isNew: true));
+            AbsenceRows.Add(ToRowViewModel(request, _openActionRequestIds.Contains(request.Id)));
         }
     }
 
@@ -358,7 +381,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         var absences = _lastFetchedRequests
             .Where(r => r.EmployeeId == employeeId)
             .OrderByDescending(r => r.StartDate)
-            .Select(r => ToRowViewModel(r, _lastNewlyApprovedIds.Contains(r.Id)))
+            .Select(r => ToRowViewModel(r, _openActionRequestIds.Contains(r.Id)))
             .ToList();
 
         return new EmployeeDetailViewModel
@@ -374,7 +397,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             .Select(id => _departmentsById.TryGetValue(id, out var department) ? department.Name : null)
             .FirstOrDefault(name => name is not null) ?? "–";
 
-    private AbsenceRowViewModel ToRowViewModel(AbsenceRequest request, bool isNew)
+    private AbsenceRowViewModel ToRowViewModel(AbsenceRequest request, bool hasOpenAction)
     {
         _employeesById.TryGetValue(request.EmployeeId, out var employee);
 
@@ -391,7 +414,25 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
                 : AbsenceDisplayText.ForType(request.PrimaryAbsenceType),
             StatusDisplay = AbsenceDisplayText.ForStatus(request.Status),
             Note = request.Note,
-            IsNew = isNew,
+            HasOpenAction = hasOpenAction,
+        };
+    }
+
+    private ActionItemRowViewModel ToActionItemRow(PersistedActionItem item)
+    {
+        _employeesById.TryGetValue(item.EmployeeId, out var employee);
+
+        return new ActionItemRowViewModel
+        {
+            Id = item.AbsenceRequestId,
+            EmployeeId = item.EmployeeId,
+            EmployeeName = employee?.FullName ?? $"Mitarbeiter #{item.EmployeeId}",
+            DepartmentName = GetDepartmentName(employee),
+            StartDate = item.StartDate,
+            EndDate = item.EndDate,
+            AbsenceTypeDisplay = string.IsNullOrWhiteSpace(item.AccountName) ? "Unbekannt" : item.AccountName,
+            ActionDisplay = AbsenceDisplayText.ForAction(item.Action),
+            Note = item.Note,
         };
     }
 

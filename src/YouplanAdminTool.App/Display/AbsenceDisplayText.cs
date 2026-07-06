@@ -22,4 +22,11 @@ internal static class AbsenceDisplayText
         AbsenceRequestStatus.Cancelled => "Storniert",
         _ => "Unbekannt",
     };
+
+    public static string ForAction(SapAction action) => action switch
+    {
+        SapAction.Add => "In SAP eintragen",
+        SapAction.Remove => "In SAP stornieren",
+        _ => "Unbekannt",
+    };
 }

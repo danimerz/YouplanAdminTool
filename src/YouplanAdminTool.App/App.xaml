@@ -4,7 +4,7 @@
     <Application.Resources>
         <Style x:Key="AbsenceRowStyle" TargetType="DataGridRow">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsNew}" Value="True">
+                <DataTrigger Binding="{Binding HasOpenAction}" Value="True">
                     <Setter Property="Background" Value="#FFE8F5E9" />
                     <Setter Property="FontWeight" Value="SemiBold" />
                 </DataTrigger>

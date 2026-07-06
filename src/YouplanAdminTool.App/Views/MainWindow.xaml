@@ -48,11 +48,11 @@
                      Width="40" VerticalContentAlignment="Center" Margin="0,0,0,4" />
         </WrapPanel>
 
-        <!-- Neu genehmigt seit letzter Abfrage -->
-        <Expander Grid.Row="1" Header="Neu freigegeben seit der letzten Abfrage"
+        <!-- Offene Posten für SAP -->
+        <Expander Grid.Row="1" Header="Offene Posten für SAP"
                   IsExpanded="True" Margin="0,0,0,12"
-                  Visibility="{Binding NewlyApproved.Count, Converter={StaticResource CountToVisibilityConverter}}">
-            <DataGrid ItemsSource="{Binding NewlyApproved}" AutoGenerateColumns="False"
+                  Visibility="{Binding OpenActionItems.Count, Converter={StaticResource CountToVisibilityConverter}}">
+            <DataGrid ItemsSource="{Binding OpenActionItems}" AutoGenerateColumns="False"
                       IsReadOnly="True" MaxHeight="220" HeadersVisibility="Column"
                       CanUserAddRows="False" GridLinesVisibility="Horizontal"
                       MouseDoubleClick="OnAbsenceRowDoubleClick"
@@ -62,7 +62,17 @@
                     <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
                     <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
                     <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
+                    <DataGridTextColumn Header="Aktion" Binding="{Binding ActionDisplay}" Width="140" />
                     <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
+                    <DataGridTemplateColumn Header="" Width="90">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="Erledigt" Padding="6,2"
+                                        Command="{Binding DataContext.MarkCompletedCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding Id}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Expander>
