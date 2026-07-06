@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private IReadOnlyDictionary<long, Employee> _employeesById = new Dictionary<long, Employee>();
     private IReadOnlyDictionary<long, Department> _departmentsById = new Dictionary<long, Department>();
     private IReadOnlyList<AbsenceRequest> _lastFetchedRequests = [];
+    private IReadOnlyList<PersistedActionItem> _lastOpenItems = [];
     private HashSet<long> _openActionRequestIds = [];
     private long? _pendingDepartmentFilterId;
     private long? _pendingEmployeeFilterId;
@@ -82,8 +83,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<AbsenceRowViewModel> AbsenceRows { get; } = [];
 
-    /// <summary>Noch offene SAP-Aktionsposten (nicht nach Zeitraum/Art/Abteilung/Mitarbeiter gefiltert -
-    /// das ist eine Aufgabenliste, kein Zeitraum-Browser).</summary>
+    /// <summary>Noch offene SAP-Aktionsposten, gefiltert nach Abteilung/Mitarbeiter (aber nicht nach
+    /// Zeitraum/Art - das ist eine Aufgabenliste, kein Zeitraum-Browser).</summary>
     public ObservableCollection<ActionItemRowViewModel> OpenActionItems { get; } = [];
 
     public MainViewModel(
@@ -188,14 +189,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             var openItems = await _processingStore.GetOpenItemsAsync();
             _openActionRequestIds = openItems.Select(i => i.AbsenceRequestId).ToHashSet();
+            _lastOpenItems = openItems;
 
             ApplyFilter();
-
-            OpenActionItems.Clear();
-            foreach (var item in openItems.OrderBy(i => i.StartDate))
-            {
-                OpenActionItems.Add(ToActionItemRow(item));
-            }
 
             LastRefreshedAt = DateTime.Now;
             StatusMessage = OpenActionItems.Count > 0
@@ -225,13 +221,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             await _processingStore.SetCompletedAsync(absenceRequestId, true);
 
-            var item = OpenActionItems.FirstOrDefault(i => i.Id == absenceRequestId);
-            if (item is not null)
-            {
-                OpenActionItems.Remove(item);
-            }
-
             _openActionRequestIds.Remove(absenceRequestId);
+            _lastOpenItems = _lastOpenItems.Where(i => i.AbsenceRequestId != absenceRequestId).ToList();
             ApplyFilter();
         }
         catch (Exception ex)
@@ -362,6 +353,18 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         foreach (var request in filtered.OrderBy(r => r.StartDate))
         {
             AbsenceRows.Add(ToRowViewModel(request, _openActionRequestIds.Contains(request.Id)));
+        }
+
+        var filteredOpenItems = _lastOpenItems
+            .Where(i => filterDepartmentId is null || IsInDepartment(i.EmployeeId, filterDepartmentId.Value))
+            .Where(i => filterEmployeeId is null || i.EmployeeId == filterEmployeeId.Value)
+            .OrderBy(i => i.StartDate)
+            .ToList();
+
+        OpenActionItems.Clear();
+        foreach (var item in filteredOpenItems)
+        {
+            OpenActionItems.Add(ToActionItemRow(item));
         }
     }
 
