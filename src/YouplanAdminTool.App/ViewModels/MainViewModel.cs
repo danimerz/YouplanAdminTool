@@ -184,7 +184,14 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             // Reihenfolge entscheidend: erst die ALTEN Stati lesen, bevor ApplyRefreshAsync sie überschreibt.
             var previousStatuses = await _processingStore.GetLastKnownStatusesAsync();
-            var newActionItems = _statusChangeDetector.DetectActionsNeeded(requests, previousStatuses);
+
+            // Ein komplett leerer Store (z.B. beim allerersten Anbinden an eine neue zentrale SQL-
+            // Datenbank) bedeutet nicht "alles ist neu" - sonst würde jeder aktuell genehmigte Antrag
+            // fälschlich als offener Posten gemeldet. Stattdessen wird der aktuelle Stand als Basis
+            // übernommen, ohne Aktionen auszulösen.
+            var newActionItems = previousStatuses.Count > 0
+                ? _statusChangeDetector.DetectActionsNeeded(requests, previousStatuses)
+                : [];
             await _processingStore.ApplyRefreshAsync(requests, newActionItems);
 
             var openItems = await _processingStore.GetOpenItemsAsync();

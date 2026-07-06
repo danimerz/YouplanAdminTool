@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<PlandayOptions>(configuration.GetSection(PlandayOptions.SectionName));
         services.Configure<AppOptions>(configuration.GetSection(AppOptions.SectionName));
+        services.Configure<SqlServerOptions>(configuration.GetSection(SqlServerOptions.SectionName));
 
         // IAccessTokenProvider muss ein echtes Singleton sein, damit der zwischengespeicherte
         // Access Token von allen Planday-API-Clients gemeinsam genutzt wird (kein Refresh pro Client).
@@ -50,7 +51,18 @@ public static class ServiceCollectionExtensions
             })
             .AddHttpMessageHandler<PlandayAuthHeaderHandler>();
 
-        services.AddSingleton<IAbsenceProcessingStore, SqliteAbsenceProcessingStore>();
+        // Zentrale SQL-Server-DB, sobald eine ConnectionString hinterlegt ist (alle Benutzerinnen teilen
+        // sich dann denselben Bearbeitungsstatus); sonst lokale SQLite-Datei als Fallback.
+        var sqlServerConnectionString = configuration.GetSection(SqlServerOptions.SectionName)["ConnectionString"];
+        if (!string.IsNullOrWhiteSpace(sqlServerConnectionString))
+        {
+            services.AddSingleton<IAbsenceProcessingStore, SqlServerAbsenceProcessingStore>();
+        }
+        else
+        {
+            services.AddSingleton<IAbsenceProcessingStore, SqliteAbsenceProcessingStore>();
+        }
+
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
         services.AddSingleton<IStatusChangeDetector, StatusChangeDetector>();
 

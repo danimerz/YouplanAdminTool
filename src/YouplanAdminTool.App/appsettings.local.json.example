@@ -2,5 +2,9 @@
   "Planday": {
     "ClientId": "DEINE-APP-ID",
     "RefreshToken": "DEIN-REFRESH-TOKEN"
+  },
+  "SqlServer": {
+    "_comment": "Optional. Wenn gesetzt, wird der SAP-Bearbeitungsstatus zentral hier statt lokal in SQLite gespeichert, damit alle Benutzerinnen denselben Stand sehen.",
+    "ConnectionString": "Server=DEIN-SERVER;Database=DEINE-DATENBANK;User Id=DEIN-BENUTZER;Password=DEIN-PASSWORT;TrustServerCertificate=True"
   }
 }

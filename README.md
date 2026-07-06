@@ -12,6 +12,19 @@ Integrations -> API Access) dürfen **nicht** eingecheckt werden. Trage sie stat
    `src/YouplanAdminTool.App/appsettings.local.json` (diese Datei ist in `.gitignore` und wird nie committet).
 2. Trage dort `ClientId` und `RefreshToken` ein.
 
+## Zentrale SQL-Datenbank für den SAP-Bearbeitungsstatus (optional)
+
+Standardmäßig speichert die App den Bearbeitungsstatus ("erledigt"-Markierungen, erkannte
+Statusänderungen) lokal in SQLite - jede Benutzerin sieht dann nur ihren eigenen Stand. Um diesen
+Status zwischen allen Benutzerinnen zu teilen, in `appsettings.local.json` unter `SqlServer:ConnectionString`
+eine SQL-Server-Verbindung hinterlegen (siehe `appsettings.local.json.example`). Ist keine
+ConnectionString gesetzt, läuft die App unverändert mit der lokalen SQLite-Datei weiter.
+
+**Wichtig beim ersten Umstieg auf die zentrale Datenbank:** Die Tabelle wird beim ersten Zugriff leer
+angelegt. Die App erkennt das und übernimmt den aktuell geladenen Stand als Basis, ohne alle
+aktuell genehmigten Anträge fälschlich als neue offene Posten zu melden - Statusänderungen werden
+erst ab diesem Zeitpunkt erkannt.
+
 ## Starten
 
 ```
@@ -28,7 +41,8 @@ dotnet test
 ## Architektur
 
 - `YouplanAdminTool.Core` – Domänenmodelle und Schnittstellen, keine Abhängigkeit zu Planday oder WPF.
-- `YouplanAdminTool.Infrastructure` – Planday-API-Clients (Absence, HR), OAuth2-Token-Handling, lokale SQLite-Persistenz.
+- `YouplanAdminTool.Infrastructure` – Planday-API-Clients (Absence, HR), OAuth2-Token-Handling, Persistenz
+  (SQLite lokal, optional SQL Server zentral - siehe oben).
 - `YouplanAdminTool.App` – WPF-Oberfläche (MVVM, CommunityToolkit.Mvvm), komplett auf Deutsch.
 
 Neue Planday-Module (z.B. Schedule, Payroll) lassen sich ergänzen, ohne bestehende Schichten anzufassen:
