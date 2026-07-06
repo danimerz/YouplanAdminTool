@@ -30,6 +30,7 @@
 
         <ui:Card Grid.Row="2" Padding="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
             <DataGrid ItemsSource="{Binding Absences}" AutoGenerateColumns="False"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                       IsReadOnly="True" HeadersVisibility="Column" CanUserAddRows="False"
                       GridLinesVisibility="Horizontal" RowStyle="{StaticResource AbsenceRowStyle}">
                 <DataGrid.Columns>
