@@ -17,6 +17,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private readonly IPlandayAbsenceService _absenceService;
     private readonly IPlandayHrService _hrService;
     private readonly IApprovalStateStore _approvalStateStore;
+    private readonly IUserSettingsStore _userSettingsStore;
     private readonly INewApprovalDetector _newApprovalDetector;
     private readonly ILogger<MainViewModel> _logger;
     private readonly AppOptions _appOptions;
@@ -26,6 +27,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private IReadOnlyDictionary<long, Department> _departmentsById = new Dictionary<long, Department>();
     private IReadOnlyList<AbsenceRequest> _lastFetchedRequests = [];
     private IReadOnlySet<long> _lastNewlyApprovedIds = new HashSet<long>();
+    private long? _pendingDepartmentFilterId;
+    private bool _isInitializing = true;
+
+    /// <summary>Wird nach jeder Aktualisierung ausgelöst, sofern neu genehmigte Anträge gefunden wurden (Anzahl).</summary>
+    public event EventHandler<int>? NewApprovalsDetected;
 
     [ObservableProperty]
     private DateTime startDate;
@@ -46,6 +52,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private AbsenceTypeFilterItem selectedAbsenceTypeFilter;
 
     [ObservableProperty]
+    private DepartmentFilterItem selectedDepartmentFilter;
+
+    [ObservableProperty]
     private int pollingIntervalMinutes;
 
     public ObservableCollection<AbsenceTypeFilterItem> AbsenceTypeFilterOptions { get; } =
@@ -57,6 +66,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         new(AbsenceType.Accrued, AbsenceDisplayText.ForType(AbsenceType.Accrued)),
     ];
 
+    public ObservableCollection<DepartmentFilterItem> DepartmentFilterOptions { get; } =
+    [
+        new(null, "Alle Abteilungen"),
+    ];
+
     public ObservableCollection<AbsenceRowViewModel> AbsenceRows { get; } = [];
 
     public ObservableCollection<AbsenceRowViewModel> NewlyApproved { get; } = [];
@@ -65,6 +79,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         IPlandayAbsenceService absenceService,
         IPlandayHrService hrService,
         IApprovalStateStore approvalStateStore,
+        IUserSettingsStore userSettingsStore,
         INewApprovalDetector newApprovalDetector,
         IOptions<AppOptions> appOptions,
         ILogger<MainViewModel> logger)
@@ -72,6 +87,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         _absenceService = absenceService;
         _hrService = hrService;
         _approvalStateStore = approvalStateStore;
+        _userSettingsStore = userSettingsStore;
         _newApprovalDetector = newApprovalDetector;
         _appOptions = appOptions.Value;
         _logger = logger;
@@ -79,9 +95,46 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         startDate = DateTime.Today;
         endDate = DateTime.Today.AddDays(_appOptions.DefaultDateRangeDays);
         selectedAbsenceTypeFilter = AbsenceTypeFilterOptions[0];
+        selectedDepartmentFilter = DepartmentFilterOptions[0];
         pollingIntervalMinutes = _appOptions.PollingIntervalMinutes;
 
         StartAutoRefreshTimer();
+    }
+
+    /// <summary>Lädt zuvor gespeicherte Benutzereinstellungen und führt anschließend die erste Aktualisierung aus.
+    /// Muss einmalig beim Start der Anwendung aufgerufen werden.</summary>
+    public async Task InitializeAsync()
+    {
+        try
+        {
+            var settings = await _userSettingsStore.LoadAsync();
+
+            if (settings.PollingIntervalMinutes is { } interval)
+            {
+                PollingIntervalMinutes = interval;
+            }
+
+            if (settings.AbsenceTypeFilter is { } absenceType)
+            {
+                var match = AbsenceTypeFilterOptions.FirstOrDefault(o => o.Value == absenceType);
+                if (match is not null)
+                {
+                    SelectedAbsenceTypeFilter = match;
+                }
+            }
+
+            _pendingDepartmentFilterId = settings.DepartmentFilterId;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Gespeicherte Benutzereinstellungen konnten nicht geladen werden.");
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
+
+        await RefreshAsync();
     }
 
     [RelayCommand]
@@ -102,6 +155,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
             var departments = await _hrService.GetDepartmentsAsync();
             _departmentsById = departments.ToDictionary(d => d.Id);
+            RebuildDepartmentFilterOptions(departments);
 
             var query = new AbsenceRequestQuery(DateOnly.FromDateTime(StartDate), DateOnly.FromDateTime(EndDate));
             var requests = await _absenceService.GetAbsenceRequestsAsync(query);
@@ -123,6 +177,11 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             StatusMessage = newlyApproved.Count > 0
                 ? $"{requests.Count} Abwesenheiten geladen, davon {newlyApproved.Count} neu genehmigt."
                 : $"{requests.Count} Abwesenheiten geladen.";
+
+            if (newlyApproved.Count > 0)
+            {
+                NewApprovalsDetected?.Invoke(this, newlyApproved.Count);
+            }
         }
         catch (Exception ex)
         {
@@ -135,7 +194,17 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    partial void OnSelectedAbsenceTypeFilterChanged(AbsenceTypeFilterItem value) => ApplyFilter();
+    partial void OnSelectedAbsenceTypeFilterChanged(AbsenceTypeFilterItem value)
+    {
+        ApplyFilter();
+        TriggerSaveSettings();
+    }
+
+    partial void OnSelectedDepartmentFilterChanged(DepartmentFilterItem value)
+    {
+        ApplyFilter();
+        TriggerSaveSettings();
+    }
 
     partial void OnPollingIntervalMinutesChanged(int value)
     {
@@ -143,14 +212,62 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         {
             _autoRefreshTimer.Interval = TimeSpan.FromMinutes(Math.Max(1, value));
         }
+
+        TriggerSaveSettings();
+    }
+
+    private void TriggerSaveSettings()
+    {
+        if (_isInitializing)
+        {
+            return;
+        }
+
+        var settings = new UserSettings(
+            PollingIntervalMinutes,
+            SelectedAbsenceTypeFilter.Value,
+            SelectedDepartmentFilter.Value);
+
+        _ = SaveSettingsAsync(settings);
+    }
+
+    private async Task SaveSettingsAsync(UserSettings settings)
+    {
+        try
+        {
+            await _userSettingsStore.SaveAsync(settings);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Benutzereinstellungen konnten nicht gespeichert werden.");
+        }
+    }
+
+    private void RebuildDepartmentFilterOptions(IReadOnlyList<Department> departments)
+    {
+        var currentSelection = SelectedDepartmentFilter.Value ?? _pendingDepartmentFilterId;
+
+        DepartmentFilterOptions.Clear();
+        DepartmentFilterOptions.Add(new DepartmentFilterItem(null, "Alle Abteilungen"));
+        foreach (var department in departments.OrderBy(d => d.Name))
+        {
+            DepartmentFilterOptions.Add(new DepartmentFilterItem(department.Id, department.Name));
+        }
+
+        SelectedDepartmentFilter = DepartmentFilterOptions.FirstOrDefault(d => d.Value == currentSelection)
+            ?? DepartmentFilterOptions[0];
+        _pendingDepartmentFilterId = null;
     }
 
     private void ApplyFilter()
     {
         var filterType = SelectedAbsenceTypeFilter.Value;
-        var filtered = filterType is null
-            ? _lastFetchedRequests
-            : _lastFetchedRequests.Where(r => r.PrimaryAbsenceType == filterType).ToList();
+        var filterDepartmentId = SelectedDepartmentFilter.Value;
+
+        var filtered = _lastFetchedRequests
+            .Where(r => filterType is null || r.PrimaryAbsenceType == filterType)
+            .Where(r => filterDepartmentId is null || IsInDepartment(r.EmployeeId, filterDepartmentId.Value))
+            .ToList();
 
         AbsenceRows.Clear();
         foreach (var request in filtered.OrderBy(r => r.StartDate))
@@ -164,6 +281,9 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             NewlyApproved.Add(ToRowViewModel(request, isNew: true));
         }
     }
+
+    private bool IsInDepartment(long employeeId, long departmentId) =>
+        _employeesById.TryGetValue(employeeId, out var employee) && employee.DepartmentIds.Contains(departmentId);
 
     private AbsenceRowViewModel ToRowViewModel(AbsenceRequest request, bool isNew)
     {

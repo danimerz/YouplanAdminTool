@@ -15,7 +15,7 @@ public sealed class SqliteApprovalStateStore : IApprovalStateStore
 
     public SqliteApprovalStateStore(IOptions<AppOptions> options)
     {
-        var databasePath = ResolveDatabasePath(options.Value.DatabasePath);
+        var databasePath = AppDataPathResolver.Resolve(options.Value.DatabasePath);
         _connectionString = $"Data Source={databasePath}";
     }
 
@@ -107,18 +107,4 @@ public sealed class SqliteApprovalStateStore : IApprovalStateStore
         }
     }
 
-    private static string ResolveDatabasePath(string configuredPath)
-    {
-        if (Path.IsPathRooted(configuredPath))
-        {
-            return configuredPath;
-        }
-
-        var appDataDirectory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "YouplanAdminTool");
-        Directory.CreateDirectory(appDataDirectory);
-
-        return Path.Combine(appDataDirectory, configuredPath);
-    }
 }

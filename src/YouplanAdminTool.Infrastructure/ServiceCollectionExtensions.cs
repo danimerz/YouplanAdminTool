@@ -51,6 +51,7 @@ public static class ServiceCollectionExtensions
             .AddHttpMessageHandler<PlandayAuthHeaderHandler>();
 
         services.AddSingleton<IApprovalStateStore, SqliteApprovalStateStore>();
+        services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
         services.AddSingleton<INewApprovalDetector, NewApprovalDetector>();
 
         return services;

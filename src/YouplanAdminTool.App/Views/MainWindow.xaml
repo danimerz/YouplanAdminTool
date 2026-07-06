@@ -42,6 +42,11 @@
                       SelectedItem="{Binding SelectedAbsenceTypeFilter}"
                       Width="140" />
 
+            <TextBlock Text="Abteilung:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <ComboBox ItemsSource="{Binding DepartmentFilterOptions}"
+                      SelectedItem="{Binding SelectedDepartmentFilter}"
+                      Width="160" />
+
             <TextBlock Text="Intervall (Min):" VerticalAlignment="Center" Margin="12,0,4,0" />
             <TextBox Text="{Binding PollingIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
                      Width="40" VerticalContentAlignment="Center" />

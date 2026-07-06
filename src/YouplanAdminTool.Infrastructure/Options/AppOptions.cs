@@ -10,4 +10,7 @@ public sealed class AppOptions
 
     /// <summary>Pfad zur lokalen SQLite-Datenbank. Relative Pfade werden gegen das Benutzer-AppData-Verzeichnis aufgelöst.</summary>
     public string DatabasePath { get; set; } = "state.db";
+
+    /// <summary>Dateiname für die persistierten Benutzereinstellungen (Intervall, Filter). Relative Pfade werden gegen das Benutzer-AppData-Verzeichnis aufgelöst.</summary>
+    public string UserSettingsFileName { get; set; } = "usersettings.json";
 }
