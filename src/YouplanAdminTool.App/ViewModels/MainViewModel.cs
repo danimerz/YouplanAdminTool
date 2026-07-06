@@ -49,10 +49,10 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
     private DateTime? lastRefreshedAt;
 
     [ObservableProperty]
-    private AbsenceTypeFilterItem selectedAbsenceTypeFilter;
+    private AbsenceTypeFilterItem? selectedAbsenceTypeFilter;
 
     [ObservableProperty]
-    private DepartmentFilterItem selectedDepartmentFilter;
+    private DepartmentFilterItem? selectedDepartmentFilter;
 
     [ObservableProperty]
     private int pollingIntervalMinutes;
@@ -194,14 +194,26 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    partial void OnSelectedAbsenceTypeFilterChanged(AbsenceTypeFilterItem value)
+    partial void OnSelectedAbsenceTypeFilterChanged(AbsenceTypeFilterItem? value)
     {
+        // WPF setzt SelectedItem beim Zurücksetzen der gebundenen Collection kurzzeitig auf null,
+        // bevor die Auswahl explizit neu zugewiesen wird (siehe RebuildDepartmentFilterOptions).
+        if (value is null)
+        {
+            return;
+        }
+
         ApplyFilter();
         TriggerSaveSettings();
     }
 
-    partial void OnSelectedDepartmentFilterChanged(DepartmentFilterItem value)
+    partial void OnSelectedDepartmentFilterChanged(DepartmentFilterItem? value)
     {
+        if (value is null)
+        {
+            return;
+        }
+
         ApplyFilter();
         TriggerSaveSettings();
     }
@@ -225,8 +237,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         var settings = new UserSettings(
             PollingIntervalMinutes,
-            SelectedAbsenceTypeFilter.Value,
-            SelectedDepartmentFilter.Value);
+            SelectedAbsenceTypeFilter?.Value,
+            SelectedDepartmentFilter?.Value);
 
         _ = SaveSettingsAsync(settings);
     }
@@ -245,7 +257,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void RebuildDepartmentFilterOptions(IReadOnlyList<Department> departments)
     {
-        var currentSelection = SelectedDepartmentFilter.Value ?? _pendingDepartmentFilterId;
+        var currentSelection = SelectedDepartmentFilter?.Value ?? _pendingDepartmentFilterId;
 
         DepartmentFilterOptions.Clear();
         DepartmentFilterOptions.Add(new DepartmentFilterItem(null, "Alle Abteilungen"));
@@ -261,8 +273,8 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
     private void ApplyFilter()
     {
-        var filterType = SelectedAbsenceTypeFilter.Value;
-        var filterDepartmentId = SelectedDepartmentFilter.Value;
+        var filterType = SelectedAbsenceTypeFilter?.Value;
+        var filterDepartmentId = SelectedDepartmentFilter?.Value;
 
         var filtered = _lastFetchedRequests
             .Where(r => filterType is null || r.PrimaryAbsenceType == filterType)
