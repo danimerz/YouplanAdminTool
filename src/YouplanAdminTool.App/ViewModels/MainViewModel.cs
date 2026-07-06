@@ -161,16 +161,22 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
 
         try
         {
-            var employees = await _hrService.GetEmployeesAsync();
+            var query = new AbsenceRequestQuery(DateOnly.FromDateTime(StartDate), DateOnly.FromDateTime(EndDate));
+
+            var employeesTask = _hrService.GetEmployeesAsync();
+            var departmentsTask = _hrService.GetDepartmentsAsync();
+            var requestsTask = _absenceService.GetAbsenceRequestsAsync(query);
+            await Task.WhenAll(employeesTask, departmentsTask, requestsTask);
+
+            var employees = employeesTask.Result;
             _employeesById = employees.ToDictionary(e => e.Id);
             RebuildEmployeeFilterOptions(employees);
 
-            var departments = await _hrService.GetDepartmentsAsync();
+            var departments = departmentsTask.Result;
             _departmentsById = departments.ToDictionary(d => d.Id);
             RebuildDepartmentFilterOptions(departments);
 
-            var query = new AbsenceRequestQuery(DateOnly.FromDateTime(StartDate), DateOnly.FromDateTime(EndDate));
-            var requests = await _absenceService.GetAbsenceRequestsAsync(query);
+            var requests = requestsTask.Result;
 
             var seenApprovedIds = await _approvalStateStore.GetSeenApprovedIdsAsync();
             var newlyApproved = _newApprovalDetector.DetectNewApprovals(requests, seenApprovedIds);

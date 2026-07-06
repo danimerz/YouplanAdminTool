@@ -137,6 +137,54 @@ public class PlandayAbsenceServiceTests
         Assert.Equal(2, callCount);
     }
 
+    [Fact]
+    public async Task ReusesAccountsCacheForSameDateRangeButRefetchesForDifferentRange()
+    {
+        var accountsCallCount = 0;
+        var requestsJson = """
+            {
+                "data": [
+                    {
+                        "id": 501,
+                        "employeeId": 42,
+                        "absencePeriod": { "start": "2026-07-10", "end": "2026-07-20" },
+                        "status": "Approved",
+                        "requestedAccounts": []
+                    }
+                ],
+                "paging": { "offset": 0, "limit": 100, "total": 1 }
+            }
+            """;
+
+        var handler = new StubHttpMessageHandler(request =>
+        {
+            var url = request.RequestUri!.ToString();
+            if (url.Contains("accounttypes"))
+            {
+                return JsonResponse(AccountTypesSinglePage);
+            }
+
+            if (url.Contains("absence/v1.0/accounts"))
+            {
+                accountsCallCount++;
+                return JsonResponse(AccountsSinglePage);
+            }
+
+            return JsonResponse(requestsJson);
+        });
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://openapi.planday.test") };
+        var sut = new PlandayAbsenceService(httpClient);
+
+        var rangeA = new AbsenceRequestQuery(new DateOnly(2026, 7, 1), new DateOnly(2026, 7, 31));
+        await sut.GetAbsenceRequestsAsync(rangeA);
+        await sut.GetAbsenceRequestsAsync(rangeA);
+        Assert.Equal(1, accountsCallCount);
+
+        var rangeB = new AbsenceRequestQuery(new DateOnly(2026, 8, 1), new DateOnly(2026, 8, 31));
+        await sut.GetAbsenceRequestsAsync(rangeB);
+        Assert.Equal(2, accountsCallCount);
+    }
+
     private static string RouteResponse(HttpRequestMessage request, string requestsJson)
     {
         var url = request.RequestUri!.ToString();
