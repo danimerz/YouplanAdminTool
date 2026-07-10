@@ -441,6 +441,7 @@ public sealed partial class MainViewModel : ObservableObject, IDisposable
             StartDate = item.StartDate,
             EndDate = item.EndDate,
             AbsenceTypeDisplay = string.IsNullOrWhiteSpace(item.AccountName) ? "Unbekannt" : item.AccountName,
+            StatusDisplay = AbsenceDisplayText.ForStatus(item.Status),
             ActionDisplay = AbsenceDisplayText.ForAction(item.Action),
             Note = item.Note,
         };

@@ -10,6 +10,7 @@ public sealed class ActionItemRowViewModel : IHasEmployeeId
     public required DateOnly StartDate { get; init; }
     public required DateOnly EndDate { get; init; }
     public required string AbsenceTypeDisplay { get; init; }
+    public required string StatusDisplay { get; init; }
     public required string ActionDisplay { get; init; }
     public string? Note { get; init; }
 

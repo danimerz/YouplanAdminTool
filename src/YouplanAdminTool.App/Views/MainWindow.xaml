@@ -73,6 +73,7 @@
                         <DataGridTextColumn Header="Abteilung" Binding="{Binding DepartmentName}" Width="150" />
                         <DataGridTextColumn Header="Zeitraum" Binding="{Binding Zeitraum}" Width="200" />
                         <DataGridTextColumn Header="Art" Binding="{Binding AbsenceTypeDisplay}" Width="120" />
+                        <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="110" />
                         <DataGridTextColumn Header="Aktion" Binding="{Binding ActionDisplay}" Width="140" />
                         <DataGridTextColumn Header="Notiz" Binding="{Binding Note}" Width="*" />
                         <DataGridTemplateColumn Header="" Width="90">
